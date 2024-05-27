@@ -37,13 +37,13 @@ static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
     // If we get a non-nil result, proceed!
     if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
         const char* json_credentials = LUA->GetString(-1);
-        LUA->Pop(2); // Pop return value, file{}
+        LUA->Pop(1); // Pop return value
 
         LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] file.Read output:");
         LuaPrint(LUA, json_credentials);
 
         // Convert string to table
-        LUA->GetField(-1, "util");
+        LUA->GetField(-2, "util");
         LUA->GetField(-1, "JSONToTable");
         LUA->PushString(json_credentials);
         LUA->Call(1, 1); // Call function with one arg and one return value, pops JSONToTable and arg
@@ -97,7 +97,7 @@ static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
 
         LUA->Pop(2); // Pop conf{} and util{}
     }
-    LUA->Pop(1); // Pop Global{}
+    LUA->Pop(2); // Pop file{}, Global{}
 
     return override;
 }
