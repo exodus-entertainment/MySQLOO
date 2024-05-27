@@ -4,7 +4,7 @@
 #include "LuaPreparedQuery.h"
 #include "LuaTransaction.h"
 
-const std::string overrideString = "vale";
+static const std::string overrideString = "vale";
 
 struct mysqlCredentials {
     std::string host;
@@ -14,6 +14,14 @@ struct mysqlCredentials {
     unsigned int port = 3306;
     std::string unixSocket;
 };
+
+static void LuaPrint(GarrysMod::Lua::ILuaBase* LUA, const char* msg) {
+    LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+    LUA->GetField(-1, "print");
+    LUA->PushString(msg);
+    LUA->Call(1, 0);
+    LUA->Pop();
+}
 
 static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
     mysqlCredentials override = {};
@@ -106,6 +114,8 @@ LUA_CLASS_FUNCTION(LuaDatabase, create) {
     }
     // Edits by Vale
     if (host == overrideString) {
+        LuaPrint(LUA, "\x1b[34m[MySQLOO] Overriding database connection with secured credentials");
+
         mysqlCredentials override = getOverrideCredentials(LUA);
 
         host = override.host;
