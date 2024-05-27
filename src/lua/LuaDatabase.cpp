@@ -6,6 +6,98 @@
 
 const std::string overrideString = "vale";
 
+struct mysqlCredentials {
+    std::string host;
+    std::string username;
+    std::string pw;
+    std::string database;
+    unsigned int port = 3306;
+    std::string unixSocket;
+};
+
+void LuaPrint(GarrysMod::Lua::ILuaBase* LUA, const char* msg) {
+    LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+    LUA->GetField(-1, "print");
+    LUA->PushString(msg);
+    LUA->Call(1, 0);
+    LUA->Pop();
+}
+
+static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
+    mysqlCredentials override = {};
+
+    LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] Override Received");
+
+    LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+    LUA->GetField(-1, "file");
+    LUA->GetField(-1, "Read");
+    LUA->PushString("confidential_mysql_creds.json");
+    LUA->PushString("DATA");
+    LUA->Call(2, 1); // Calls file.Read, pops file.Read
+    // If we get a non-nil result, proceed!
+    if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+        const char* json_credentials = LUA->GetString(-1);
+        LUA->Pop(1); // Pop return value
+
+        LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] file.Read output:");
+        LuaPrint(LUA, json_credentials);
+
+        // Convert string to table
+        LUA->GetField(-1, "util");
+        LUA->GetField(-1, "JSONToTable");
+        LUA->PushString(json_credentials);
+        LUA->Call(1, 1); // Call function with one arg and one return value, pops JSONToTable and arg
+
+        // Retrieve fields from table
+        LUA->GetField(-1, "host");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+            LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] host IsType check validated!");
+            override.host = LUA->GetString(-1);
+        }
+        LUA->Pop(1); // Pop conf["host"]
+
+        LUA->GetField(-1, "username");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+            LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] username IsType check validated!");
+            override.username = LUA->GetString(-1);
+        }
+        LUA->Pop(1); // Pop conf["username"]
+
+        LUA->GetField(-1, "password");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+            LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] password IsType check validated!");
+            override.pw = LUA->GetString(-1);
+        }
+        LUA->Pop(1); // Pop conf["password"]
+
+        LUA->GetField(-1, "database");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+            LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] database IsType check validated!");
+            override.database = LUA->GetString(-1);
+        }
+        LUA->Pop(1); // Pop conf["database"]
+
+        LUA->GetField(-1, "port");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::Number)) {
+            LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] port IsType check validated!");
+            override.port = (int) LUA->GetNumber(-1);
+        }
+        LUA->Pop(1); // Pop conf["port"]
+
+        LUA->GetField(-1, "unixSocket");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
+            LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] unixSocket IsType check validated!");
+            override.unixSocket = LUA->GetString(-1);
+        }
+        LUA->Pop(1); // Pop conf["unixSocket"]
+
+        LUA->Pop(2); // Pop conf{} and util{}
+    }
+    LUA->Pop(2); // Pop file{}, Global{}
+
+    return override;
+}
+
 static void pushLuaObjectTable(ILuaBase *LUA, void *data, int type) {
     LUA->CreateTable();
     LUA->PushUserType(data, LuaObject::TYPE_USERDATA);
@@ -32,65 +124,27 @@ LUA_CLASS_FUNCTION(LuaDatabase, create) {
         unixSocket = LUA->GetString(6);
     }
     // Edits by Vale
-    // If host == "vale" then retrieve from garrysmod/data/confidential_mysql_creds.json
     if (host == overrideString) {
-        LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-        LUA->GetField(-1, "file");
-        LUA->GetField(-1, "Read");
-        LUA->PushString("confidential_mysql_creds.json");
-        LUA->PushString("DATA");
-        LUA->Call(2, 1); // Calls file.Read, pops file.Read
-        // If we get a non-nil result, proceed!
-        if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-            const char* json_credentials = LUA->GetString(-1);
-            LUA->Pop(1); // Pop return value
+        LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] Override Condition Met");
+        mysqlCredentials override = getOverrideCredentials(LUA);
 
-            // Convert string to table
-            LUA->GetField(-1, "util");
-            LUA->GetField(-1, "JSONToTable");
-            LUA->PushString(json_credentials);
-            LUA->Call(1, 1); // Call function with one arg and one return value, pops JSONToTable and arg
+        LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] Override Credential Values:");
+        LuaPrint(LUA, override.host.c_str());
+        LuaPrint(LUA, override.username.c_str());
+        LuaPrint(LUA, override.pw.c_str());
+        LuaPrint(LUA, override.database.c_str());
+        LuaPrint(LUA, std::to_string(override.port).c_str());
+        LuaPrint(LUA, override.unixSocket.c_str());
 
-            // Retrieve fields from table
-            LUA->GetField(-1, "host");
-            if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-                host = LUA->GetString(-1);
-            }
-            LUA->Pop(1); // Pop conf["host"]
+        host = override.host;
+        username = override.host;
+        pw = override.pw;
+        database = override.database;
+        port = override.port;
+        unixSocket = override.unixSocket;
 
-            LUA->GetField(-1, "username");
-            if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-                username = LUA->GetString(-1);
-            }
-            LUA->Pop(1); // Pop conf["username"]
+        LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] Internal values should be set to override");
 
-            LUA->GetField(-1, "password");
-            if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-                pw = LUA->GetString(-1);
-            }
-            LUA->Pop(1); // Pop conf["password"]
-
-            LUA->GetField(-1, "database");
-            if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-                database = LUA->GetString(-1);
-            }
-            LUA->Pop(1); // Pop conf["database"]
-
-            LUA->GetField(-1, "port");
-            if (LUA->IsType(-1, GarrysMod::Lua::Type::Number)) {
-                port = (int) LUA->GetNumber(-1);
-            }
-            LUA->Pop(1); // Pop conf["port"]
-
-            LUA->GetField(-1, "unixSocket");
-            if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-                unixSocket = LUA->GetString(-1);
-            }
-            LUA->Pop(1); // Pop conf["unixSocket"]
-
-            LUA->Pop(2); // Pop conf{} and util{}
-        }
-        LUA->Pop(2); // Pop file{}, Global{}
     }
 
     auto createdDatabase = Database::createDatabase(host, username, pw, database, port, unixSocket);
