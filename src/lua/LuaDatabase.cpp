@@ -48,6 +48,10 @@ static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
         LUA->PushString(json_credentials);
         LUA->Call(1, 1); // Call function with one arg and one return value, pops JSONToTable and arg
 
+        LuaPrint(LUA, "\x1b[31m[MySQLOOxVale] util.JSONToTable called");
+        if (LUA->IsType(-1, GarrysMod::Lua::Type::Table)) LuaPrint(LUA, "table is on the stack");
+        else LuaPrint(LUA, "not a table");
+
         // Retrieve fields from table
         LUA->GetField(-1, "host");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
