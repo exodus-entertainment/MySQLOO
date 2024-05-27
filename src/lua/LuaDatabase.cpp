@@ -141,7 +141,7 @@ LUA_CLASS_FUNCTION(LuaDatabase, create) {
         LuaPrint(LUA, override.unixSocket.c_str());
 
         host = override.host;
-        username = override.host;
+        username = override.username;
         pw = override.pw;
         database = override.database;
         port = override.port;
