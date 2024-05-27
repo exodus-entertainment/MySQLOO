@@ -15,18 +15,8 @@ struct mysqlCredentials {
     std::string unixSocket;
 };
 
-void LuaPrintDebug(GarrysMod::Lua::ILuaBase* LUA, const char* msg) {
-    LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-    LUA->GetField(-1, "print");
-    LUA->PushString(msg);
-    LUA->Call(1, 0);
-    LUA->Pop();
-}
-
 static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
     mysqlCredentials override = {};
-
-    LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] Override Received");
 
     LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
     LUA->GetField(-1, "file");
@@ -39,58 +29,45 @@ static mysqlCredentials getOverrideCredentials(GarrysMod::Lua::ILuaBase* LUA) {
         const char* json_credentials = LUA->GetString(-1);
         LUA->Pop(1); // Pop return value
 
-        LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] file.Read output:");
-        LuaPrintDebug(LUA, json_credentials);
-
         // Convert string to table
         LUA->GetField(-2, "util");
         LUA->GetField(-1, "JSONToTable");
         LUA->PushString(json_credentials);
         LUA->Call(1, 1); // Call function with one arg and one return value, pops JSONToTable and arg
 
-        LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] util.JSONToTable called");
-        if (LUA->IsType(-1, GarrysMod::Lua::Type::Table)) LuaPrintDebug(LUA, "table is on the stack");
-        else LuaPrintDebug(LUA, "not a table");
-
         // Retrieve fields from table
         LUA->GetField(-1, "host");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-            LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] host IsType check validated!");
             override.host = LUA->GetString(-1);
         }
         LUA->Pop(1); // Pop conf["host"]
 
         LUA->GetField(-1, "username");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-            LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] username IsType check validated!");
             override.username = LUA->GetString(-1);
         }
         LUA->Pop(1); // Pop conf["username"]
 
         LUA->GetField(-1, "password");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-            LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] password IsType check validated!");
             override.pw = LUA->GetString(-1);
         }
         LUA->Pop(1); // Pop conf["password"]
 
         LUA->GetField(-1, "database");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-            LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] database IsType check validated!");
             override.database = LUA->GetString(-1);
         }
         LUA->Pop(1); // Pop conf["database"]
 
         LUA->GetField(-1, "port");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::Number)) {
-            LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] port IsType check validated!");
             override.port = (int) LUA->GetNumber(-1);
         }
         LUA->Pop(1); // Pop conf["port"]
 
         LUA->GetField(-1, "unixSocket");
         if (LUA->IsType(-1, GarrysMod::Lua::Type::String)) {
-            LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] unixSocket IsType check validated!");
             override.unixSocket = LUA->GetString(-1);
         }
         LUA->Pop(1); // Pop conf["unixSocket"]
@@ -129,16 +106,7 @@ LUA_CLASS_FUNCTION(LuaDatabase, create) {
     }
     // Edits by Vale
     if (host == overrideString) {
-        LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] Override Condition Met");
         mysqlCredentials override = getOverrideCredentials(LUA);
-
-        LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] Override Credential Values:");
-        LuaPrintDebug(LUA, override.host.c_str());
-        LuaPrintDebug(LUA, override.username.c_str());
-        LuaPrintDebug(LUA, override.pw.c_str());
-        LuaPrintDebug(LUA, override.database.c_str());
-        LuaPrintDebug(LUA, std::to_string(override.port).c_str());
-        LuaPrintDebug(LUA, override.unixSocket.c_str());
 
         host = override.host;
         username = override.username;
@@ -146,9 +114,6 @@ LUA_CLASS_FUNCTION(LuaDatabase, create) {
         database = override.database;
         port = override.port;
         unixSocket = override.unixSocket;
-
-        LuaPrintDebug(LUA, "\x1b[31m[MySQLOOxVale] Internal values should be set to override");
-
     }
 
     auto createdDatabase = Database::createDatabase(host, username, pw, database, port, unixSocket);
