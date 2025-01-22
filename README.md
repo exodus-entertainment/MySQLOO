@@ -58,6 +58,7 @@ Database:connect()
 Database:disconnect(shouldWait)
 -- Returns nothing
 -- disconnects from the database and waits for all queries to finish if shouldWait is true
+-- This function calls the onDisconnected callback if it existed on the database before the database was connected.
 
 Database:query( sql )
 -- Returns [Query]
@@ -142,12 +143,26 @@ Database:setSSLSettings(key, cert, ca, capath, cipher)
 -- Every parameter is optional and can be omitted (set to nil) if not required.
 -- See https://dev.mysql.com/doc/c-api/8.0/en/mysql-ssl-set.html for the description of each parameter.
 
+Database:setReadTimeout(timeout)
+Database:setWriteTimeout(timeout)
+Database:setConnectTimeout(timeout)
+-- Returns nothing
+-- Sets the corresponding timeout value in seconds for any queries operations started by this database instance.
+-- The timeout value needs to be at least 1. If this is not called, the default value is used.
+-- For information about the timeout values read the documentation here:
+-- https://dev.mysql.com/doc/c-api/8.0/en/mysql-options.html
+
 -- Callbacks
 Database.onConnected( db )
 -- Called when the connection to the MySQL server is successful
 
 Database.onConnectionFailed( db, err )
 -- Called when the connection to the MySQL server fails, [String] err is why.
+
+Database.onDisconnected( db )
+-- Called after Database.disconnect has been called and all queries have finished executing
+-- Note: You have to set this callback before calling Database:connect() or it will not be called.
+
 
 -- Query/PreparedQuery object (transactions also inherit all functions, some have no effect though)
 
